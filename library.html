@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Library Management System</title>
+<style>
+:root{--bg:#0d1117;--bar:#121a2b;--card:#161b26;--field:#0f141d;--line:#2a3345;--tx:#e6eaf2;--mu:#8b95a9;--ac:#2f6df6;--ok:#34d399;--bad:#f87171;--tab:#1c2434;
+color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+header{background:var(--bar);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+h1{font-size:20px;margin:0;font-weight:600}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+nav{display:flex;gap:10px;padding:14px 20px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+nav button{background:var(--tab);color:var(--tx);border:0;border-radius:10px;padding:11px 20px;font:inherit;cursor:pointer}
+nav button.on{background:var(--ac);color:#fff}
+main{max-width:1000px;margin:24px auto;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
+h2{margin:0 0 16px;font-size:20px}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+input,select{flex:1 1 150px;min-width:0;background:var(--field);color:var(--tx);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:inherit}
+input::placeholder{color:var(--mu)}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:12px 22px;font:inherit;cursor:pointer}
+.btn.ghost{background:var(--tab);color:var(--tx);padding:8px 14px;font-size:14px}
+.btn.sm{padding:6px 12px;font-size:13px;background:transparent;border:1px solid var(--line);color:var(--tx)}
+.btn.sm.del{color:var(--bad)}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th{background:var(--tab);text-align:left;padding:11px 12px;font-weight:600}
+td{padding:11px 12px;border-bottom:1px solid var(--line)}
+.empty{color:var(--mu);text-align:center;padding:22px}
+.tag{padding:2px 10px;border-radius:99px;font-size:13px}
+.tag.ok{background:#12372b;color:var(--ok)}.tag.out{background:#3a2020;color:var(--bad)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tab);border:1px solid var(--line);padding:10px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+section{display:none}section.on{display:block}
+</style>
+</head>
+<body>
+<header>
+  <h1>📚 Library Management System</h1>
+  <div class="tools">
+    <button class="btn ghost" id="exp">Export data</button>
+    <button class="btn ghost" id="imp">Import data</button>
+    <button class="btn ghost" id="clr">Clear all</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+</header>
+<nav id="tabs">
+  <button data-t="books" class="on">Books</button>
+  <button data-t="students">Students</button>
+  <button data-t="issue">Issue / Return</button>
+  <button data-t="records">Borrow Records</button>
+</nav>
+<main>
+<section id="books" class="on"><div class="card">
+  <h2>Books</h2>
+  <div class="row">
+    <input id="bId" placeholder="Book ID"><input id="bTitle" placeholder="Title"><input id="bAuth" placeholder="Author"><input id="bQty" type="number" min="1" placeholder="Quantity">
+    <button class="btn" id="addBook">Add Book</button>
+  </div>
+  <div class="row"><input id="bSearch" placeholder="🔍 Search by title or author"></div>
+  <div class="wrap"><table><thead><tr><th>ID</th><th>Title</th><th>Author</th><th>Available</th><th></th></tr></thead><tbody id="bBody"></tbody></table></div>
+</div></section>
+
+<section id="students"><div class="card">
+  <h2>Students</h2>
+  <div class="row">
+    <input id="sId" placeholder="Student ID"><input id="sName" placeholder="Full name"><input id="sClass" placeholder="Class / Course"><input id="sPhone" placeholder="Phone or email">
+    <button class="btn" id="addStu">Add Student</button>
+  </div>
+  <div class="row"><input id="sSearch" placeholder="🔍 Search by name or ID"></div>
+  <div class="wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Class</th><th>Contact</th><th>Books held</th><th></th></tr></thead><tbody id="sBody"></tbody></table></div>
+</div></section>
+
+<section id="issue"><div class="card">
+  <h2>Issue / Return</h2>
+  <div class="row">
+    <select id="iStu"></select><select id="iBook"></select>
+    <button class="btn" id="issueBtn">Issue Book</button>
+  </div>
+  <h2 style="margin-top:22px;font-size:17px">Currently issued</h2>
+  <div class="wrap"><table><thead><tr><th>Student</th><th>Book</th><th>Issued on</th><th></th></tr></thead><tbody id="iBody"></tbody></table></div>
+</div></section>
+
+<section id="records"><div class="card">
+  <h2>Borrow Records</h2>
+  <div class="row"><input id="rSearch" placeholder="🔍 Search by student or book"></div>
+  <div class="wrap"><table><thead><tr><th>Student</th><th>Book</th><th>Issued</th><th>Returned</th><th>Status</th></tr></thead><tbody id="rBody"></tbody></table></div>
+</div></section>
+</main>
+<div id="toast"></div>
+
+<script>
+var KEY="libraryData.v1";
+var D={books:[],students:[],records:[]};
+function load(){try{var r=localStorage.getItem(KEY);if(r){var p=JSON.parse(r);if(p&&p.books&&p.students&&p.records)D=p;}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){toast("Couldn’t save in this browser. Use Export data to keep a copy.");}}
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+var tt;function toast(m){var t=$("toast");t.textContent=m;t.className="show";clearTimeout(tt);tt=setTimeout(function(){t.className=""},2600)}
+function today(){return new Date().toLocaleDateString("en-GB")}
+function book(id){return D.books.find(function(b){return b.id===id})}
+function stu(id){return D.students.find(function(s){return s.id===id})}
+function avail(b){return b.qty-D.records.filter(function(r){return r.book===b.id&&!r.ret}).length}
+function held(s){return D.records.filter(function(r){return r.stu===s&&!r.ret}).length}
+function nm(s){var x=stu(s);return x?x.name+" ("+x.id+")":s+" (removed)"}
+function bt(b){var x=book(b);return x?x.title:b+" (removed)"}
+
+function render(){
+  var q=$("bSearch").value.toLowerCase();
+  var rows=D.books.filter(function(b){return (b.title+" "+b.author).toLowerCase().indexOf(q)>-1});
+  $("bBody").innerHTML=rows.length?rows.map(function(b){var a=avail(b);
+    return "<tr><td>"+esc(b.id)+"</td><td>"+esc(b.title)+"</td><td>"+esc(b.author)+"</td><td><span class='tag "+(a>0?"ok":"out")+"'>"+a+" / "+b.qty+"</span></td><td><button class='btn sm del' data-delbook='"+esc(b.id)+"'>Delete</button></td></tr>"}).join(""):"<tr><td colspan='5' class='empty'>No books yet. Add your first book above.</td></tr>";
+
+  q=$("sSearch").value.toLowerCase();
+  rows=D.students.filter(function(s){return (s.name+" "+s.id).toLowerCase().indexOf(q)>-1});
+  $("sBody").innerHTML=rows.length?rows.map(function(s){
+    return "<tr><td>"+esc(s.id)+"</td><td>"+esc(s.name)+"</td><td>"+esc(s.cls)+"</td><td>"+esc(s.contact)+"</td><td>"+held(s.id)+"</td><td><button class='btn sm del' data-delstu='"+esc(s.id)+"'>Delete</button></td></tr>"}).join(""):"<tr><td colspan='6' class='empty'>No students yet. Add a student above.</td></tr>";
+
+  var sv=$("iStu").value,bv=$("iBook").value;
+  $("iStu").innerHTML="<option value=''>Select student</option>"+D.students.map(function(s){return "<option value='"+esc(s.id)+"'>"+esc(s.name)+" ("+esc(s.id)+")</option>"}).join("");
+  $("iBook").innerHTML="<option value=''>Select book</option>"+D.books.filter(function(b){return avail(b)>0}).map(function(b){return "<option value='"+esc(b.id)+"'>"+esc(b.title)+" ("+avail(b)+" left)</option>"}).join("");
+  $("iStu").value=sv;$("iBook").value=bv;
+
+  var act=D.records.filter(function(r){return !r.ret});
+  $("iBody").innerHTML=act.length?act.map(function(r){
+    return "<tr><td>"+esc(nm(r.stu))+"</td><td>"+esc(bt(r.book))+"</td><td>"+r.date+"</td><td><button class='btn sm' data-ret='"+r.rid+"'>Return</button></td></tr>"}).join(""):"<tr><td colspan='4' class='empty'>No books are out right now.</td></tr>";
+
+  q=$("rSearch").value.toLowerCase();
+  rows=D.records.slice().reverse().filter(function(r){return (nm(r.stu)+" "+bt(r.book)).toLowerCase().indexOf(q)>-1});
+  $("rBody").innerHTML=rows.length?rows.map(function(r){
+    return "<tr><td>"+esc(nm(r.stu))+"</td><td>"+esc(bt(r.book))+"</td><td>"+r.date+"</td><td>"+(r.ret||"–")+"</td><td><span class='tag "+(r.ret?"ok":"out")+"'>"+(r.ret?"Returned":"Issued")+"</span></td></tr>"}).join(""):"<tr><td colspan='5' class='empty'>No borrow records yet.</td></tr>";
+}
+
+$("tabs").onclick=function(e){var t=e.target.dataset.t;if(!t)return;
+  document.querySelectorAll("nav button").forEach(function(b){b.className=b.dataset.t===t?"on":""});
+  document.querySelectorAll("section").forEach(function(s){s.className=s.id===t?"on":""});render()};
+
+$("addBook").onclick=function(){
+  var id=$("bId").value.trim(),t=$("bTitle").value.trim(),a=$("bAuth").value.trim(),q=parseInt($("bQty").value,10);
+  if(!id||!t||!a||!(q>0))return toast("Fill in Book ID, title, author and a quantity of 1 or more.");
+  if(book(id))return toast("Book ID "+id+" already exists.");
+  D.books.push({id:id,title:t,author:a,qty:q});save();
+  ["bId","bTitle","bAuth","bQty"].forEach(function(i){$(i).value=""});render();toast("Book added.")};
+
+$("addStu").onclick=function(){
+  var id=$("sId").value.trim(),n=$("sName").value.trim();
+  if(!id||!n)return toast("Student ID and name are required.");
+  if(stu(id))return toast("Student ID "+id+" already exists.");
+  D.students.push({id:id,name:n,cls:$("sClass").value.trim(),contact:$("sPhone").value.trim()});save();
+  ["sId","sName","sClass","sPhone"].forEach(function(i){$(i).value=""});render();toast("Student added.")};
+
+$("issueBtn").onclick=function(){
+  var s=$("iStu").value,b=$("iBook").value;
+  if(!s||!b)return toast("Select a student and a book.");
+  if(D.records.some(function(r){return r.stu===s&&r.book===b&&!r.ret}))return toast("This student already has that book.");
+  D.records.push({rid:Date.now()+"",stu:s,book:b,date:today(),ret:""});save();render();toast("Book issued.")};
+
+document.addEventListener("click",function(e){
+  var d=e.target.dataset;if(!d)return;
+  if(d.delbook){if(D.records.some(function(r){return r.book===d.delbook&&!r.ret}))return toast("That book is still issued. Return it first.");
+    if(confirm("Delete this book?")){D.books=D.books.filter(function(b){return b.id!==d.delbook});save();render()}}
+  if(d.delstu){if(held(d.delstu))return toast("That student still holds books. Return them first.");
+    if(confirm("Delete this student?")){D.students=D.students.filter(function(s){return s.id!==d.delstu});save();render()}}
+  if(d.ret){D.records.forEach(function(r){if(r.rid===d.ret)r.ret=today()});save();render();toast("Book returned.")}
+});
+["bSearch","sSearch","rSearch"].forEach(function(i){$(i).oninput=render});
+
+$("exp").onclick=function(){
+  var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(D,null,2)],{type:"application/json"}));
+  a.download="library-data.json";document.body.appendChild(a);a.click();a.remove();toast("Data exported.")};
+$("imp").onclick=function(){$("file").click()};
+$("file").onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var p=JSON.parse(r.result);if(!p.books||!p.students||!p.records)throw 0;D=p;save();render();toast("Data imported.")}catch(x){toast("That file isn’t a valid library export.")}};
+  r.readAsText(f);e.target.value=""};
+$("clr").onclick=function(){if(confirm("Delete all books, students and records?")){D={books:[],students:[],records:[]};save();render()}};
+
+load();render();
+</script>
+</body>
+</html>
